@@ -63,20 +63,28 @@
     <div class="container">
         <div class="input-section">
             <div class="form-group">
-                <label for="laptopSelect">Common Laptop Sizes:</label>
-                <select id="laptopSelect" onchange="updateFromPreset()">
-                    <option value="">Custom Size</option>
-                    <option value="macbook-air-13">MacBook Air 13" (11.97 x 8.36 x 0.63)</option>
-                    <option value="macbook-pro-14">MacBook Pro 14" (12.31 x 8.71 x 0.61)</option>
-                    <option value="macbook-pro-16">MacBook Pro 16" (14.01 x 9.77 x 0.66)</option>
-                    <option value="surface-laptop-13">Surface Laptop 13.5" (12.1 x 8.8 x 0.57)</option>
-                    <option value="thinkpad-x1">ThinkPad X1 14" (12.71 x 8.54 x 0.59)</option>
-                    <option value="generic-15">Generic 15" Laptop (14.13 x 9.73 x 0.71)</option>
+                <label for="unitSelect">Unit:</label>
+                <select id="unitSelect" onchange="updateFromPreset()">
+                    <option value="in">Inches</option>
+                    <option value="cm">Centimeters</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Laptop Dimensions (inches):</label>
+                <label for="laptopSelect">Common Laptop Sizes:</label>
+                <select id="laptopSelect" onchange="updateFromPreset()">
+                    <option value="">Custom Size</option>
+                    <option value="macbook-air-13">MacBook Air 13" (30.4 x 21.2 x 1.6 cm / 11.97 x 8.36 x 0.63 in)</option>
+                    <option value="macbook-pro-14">MacBook Pro 14" (31.3 x 22.1 x 1.5 cm / 12.31 x 8.71 x 0.61 in)</option>
+                    <option value="macbook-pro-16">MacBook Pro 16" (35.6 x 24.8 x 1.7 cm / 14.01 x 9.77 x 0.66 in)</option>
+                    <option value="surface-laptop-13">Surface Laptop 13.5" (30.7 x 22.4 x 1.4 cm / 12.1 x 8.8 x 0.57 in)</option>
+                    <option value="thinkpad-x1">ThinkPad X1 14" (32.3 x 21.7 x 1.5 cm / 12.71 x 8.54 x 0.59 in)</option>
+                    <option value="generic-15">Generic 15" Laptop (35.9 x 24.7 x 1.8 cm / 14.13 x 9.73 x 0.71 in)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Laptop Dimensions (<span id="unitLabel">inches</span>):</label>
                 <input type="number" id="width" placeholder="Width" step="0.01" onchange="calculate()">
                 <input type="number" id="length" placeholder="Length" step="0.01" onchange="calculate()">
                 <input type="number" id="height" placeholder="Height" step="0.01" onchange="calculate()">
@@ -84,16 +92,18 @@
 
             <div class="formula">
                 <h3>Formulas:</h3>
-                <p>Template Width (TW) = W + 2(H+0.25) + 0.5</p>
-                <p>Template Length (TL) = (L+0.25)(2) + (H+0.25)(4) + (L+0.25)(0.5)</p>
-                <p>Taper Angle Offset (TAO) = 0.10(TW) ≈ 1.625"</p>
+                <p>Template Width (TW) = W + 2(H+P) + S</p>
+                <p>Template Length (TL) = (L+P)(2) + (H+P)(4) + (L+P)(0.5)</p>
+                <p>Taper Angle Offset (TAO) = 0.10(TW)</p>
+                <p>Where P = padding (0.25" / 0.635cm)</p>
+                <p>Where S = seam allowance (0.5" / 1.27cm)</p>
             </div>
 
             <div class="results" id="results">
                 <h3>Calculations:</h3>
-                <p>Template Width: <span id="templateWidth">-</span>"</p>
-                <p>Template Length: <span id="templateLength">-</span>"</p>
-                <p>Taper Angle Offset: <span id="taperAngleOffset">-</span>"</p>
+                <p>Template Width: <span id="templateWidth">-</span></p>
+                <p>Template Length: <span id="templateLength">-</span></p>
+                <p>Taper Angle Offset: <span id="taperAngleOffset">-</span></p>
             </div>
         </div>
 
@@ -103,32 +113,68 @@
     </div>
 
     <script>
-        const laptopSizes = {
-            'macbook-air-13': { width: 11.97, length: 8.36, height: 0.63 },
-            'macbook-pro-14': { width: 12.31, length: 8.71, height: 0.61 },
-            'macbook-pro-16': { width: 14.01, length: 9.77, height: 0.66 },
-            'surface-laptop-13': { width: 12.1, length: 8.8, height: 0.57 },
-            'thinkpad-x1': { width: 12.71, length: 8.54, height: 0.59 },
-            'generic-15': { width: 14.13, length: 9.73, height: 0.71 }
+        const Units = {
+            in: {
+                name: 'inches',
+                symbol: '"',
+                padding: 0.25,
+                seam: 0.5,
+                holeDiameter: 1.25,
+                keeperHeight: 1.5,
+                foldSection: 1,
+                doubleFoldSection: 2,
+                toCm: (val) => val * 2.54,
+                fromCm: (val) => val / 2.54
+            },
+            cm: {
+                name: 'centimeters',
+                symbol: 'cm',
+                padding: 0.635,
+                seam: 1.27,
+                holeDiameter: 3.175,
+                keeperHeight: 3.81,
+                foldSection: 2.54,
+                doubleFoldSection: 5.08,
+                toCm: (val) => val,
+                fromCm: (val) => val
+            }
         };
+
+        const laptopSizes = {
+            'macbook-air-13': { width: 30.4, length: 21.2, height: 1.6 },
+            'macbook-pro-14': { width: 31.3, length: 22.1, height: 1.5 },
+            'macbook-pro-16': { width: 35.6, length: 24.8, height: 1.7 },
+            'surface-laptop-13': { width: 30.7, length: 22.4, height: 1.4 },
+            'thinkpad-x1': { width: 32.3, length: 21.7, height: 1.5 },
+            'generic-15': { width: 35.9, length: 24.7, height: 1.8 }
+        };
+
+        function getCurrentUnit() {
+            return Units[document.getElementById('unitSelect').value];
+        }
 
         function updateHash() {
             const width = document.getElementById('width').value;
             const length = document.getElementById('length').value;
             const height = document.getElementById('height').value;
             const preset = document.getElementById('laptopSelect').value;
+            const unit = document.getElementById('unitSelect').value;
             
             const params = new URLSearchParams();
             if (preset) params.set('preset', preset);
             if (width) params.set('width', width);
             if (length) params.set('length', length);
             if (height) params.set('height', height);
+            if (unit) params.set('unit', unit);
             
             window.location.hash = params.toString();
         }
 
         function loadFromHash() {
             const params = new URLSearchParams(window.location.hash.slice(1));
+            
+            const unit = params.get('unit');
+            if (unit) document.getElementById('unitSelect').value = unit;
             
             const preset = params.get('preset');
             if (preset) {
@@ -150,45 +196,65 @@
         function updateFromPreset() {
             const select = document.getElementById('laptopSelect');
             const size = laptopSizes[select.value];
+            const unit = getCurrentUnit();
             
             if (size) {
-                document.getElementById('width').value = size.width;
-                document.getElementById('length').value = size.length;
-                document.getElementById('height').value = size.height;
+                document.getElementById('width').value = unit.fromCm(size.width).toFixed(2);
+                document.getElementById('length').value = unit.fromCm(size.length).toFixed(2);
+                document.getElementById('height').value = unit.fromCm(size.height).toFixed(2);
                 calculate();
             }
+            document.getElementById('unitLabel').textContent = unit.name;
             updateHash();
         }
 
         function calculate() {
+            const unit = getCurrentUnit();
             const width = parseFloat(document.getElementById('width').value) || 0;
-            const length = (parseFloat(document.getElementById('length').value) || 0) + 0.25
-            const height = (parseFloat(document.getElementById('height').value) || 0) + 0.25;
+            const length = parseFloat(document.getElementById('length').value) || 0;
+            const height = parseFloat(document.getElementById('height').value) || 0;
+
+            const paddedLength = length + unit.padding;
+            const paddedHeight = height + unit.padding;
 
             // Calculate template dimensions
-            const templateWidth = width + (2 * height) + 0.5;
-            const templateLength = (length * 2) + (height * 4) + (length * 0.5);
+            const templateWidth = width + (2 * paddedHeight) + unit.seam;
+            const templateLength = (paddedLength * 2) + (paddedHeight * 4) + (paddedLength * 0.5);
             const taperAngleOffset = templateWidth * 0.10;
-            const flapHeight = length / 2;
+            const flapHeight = paddedLength / 2;
 
             // Update results
-            document.getElementById('templateWidth').textContent = `${width} + 2(${height}) + 0.5 = ${templateWidth.toFixed(2)}`;
-            document.getElementById('templateLength').textContent = `${length}(2) + ${height}(4) + ${length}(0.5) = ${templateLength.toFixed(2)}`;
-            document.getElementById('taperAngleOffset').textContent = `${templateWidth.toFixed(2)} × 0.10 = ${taperAngleOffset.toFixed(2)}`;
+            document.getElementById('templateWidth').innerHTML = 
+                `${width.toFixed(2)} + 2(${paddedHeight.toFixed(2)}) + ${unit.seam.toFixed(2)} = <b>${templateWidth.toFixed(2)}${unit.symbol}</b>`;
+            document.getElementById('templateLength').innerHTML = 
+                `${paddedLength.toFixed(2)}(2) + ${paddedHeight.toFixed(2)}(4) + ${paddedLength.toFixed(2)}(0.5) = <b>${templateLength.toFixed(2)}${unit.symbol}</b>`;
+            document.getElementById('taperAngleOffset').innerHTML = 
+                `${templateWidth.toFixed(2)} × 0.10 = <b>${taperAngleOffset.toFixed(2)}${unit.symbol}</b>`;
 
             // Generate SVG
-            generateSVG(templateWidth, templateLength, taperAngleOffset, flapHeight, length);
+            generateSVG(templateWidth, templateLength, taperAngleOffset, flapHeight, paddedLength, unit);
             updateHash();
         }
 
-        function generateSVG(templateWidth, templateLength, taperAngleOffset, flapHeight, laptopLength) {
-            const scale = 20;
-            const svgWidth = (templateWidth * scale) + 120; // Increased width padding
-            const svgHeight = (templateLength * scale) + 120; // Increased height padding
+        function generateSVG(templateWidth, templateLength, taperAngleOffset, flapHeight, laptopLength, unit) {
+            // Calculate SVG dimensions with padding
+            const padding = 60;
+            const contentWidth = templateWidth + 4; // Add space for labels
+            const contentHeight = templateLength + unit.keeperHeight + 4; // Add space for keeper and labels
+            
+            // Get container width
+            const container = document.getElementById('svgContainer');
+            const containerWidth = container.clientWidth;
+            
+            // Calculate scale to fit width while maintaining aspect ratio
+            const scale = Math.min(20, (containerWidth - padding*2) / contentWidth);
+            
+            const svgWidth = (contentWidth * scale) + padding*2;
+            const svgHeight = (contentHeight * scale) + padding*2;
 
             const svg = `
-                <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
-                    <g transform="translate(60, 40)"> <!-- Increased left padding -->
+                <svg width="100%" height="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">
+                    <g transform="translate(${padding + 50}, ${padding/2})">
                         <!-- Main template outline -->
                         <path d="
                             M 0,${templateLength * scale}
@@ -205,48 +271,45 @@
 
                         <!-- Horizontal dotted lines -->
                         <!-- Top flap -->
-                        <text x="-10" y="${(flapHeight/2) * scale}" text-anchor="end" dominant-baseline="middle">${flapHeight}"</text>
+                        <text x="-20" y="${(flapHeight/2) * scale}" text-anchor="end" dominant-baseline="middle">${flapHeight.toFixed(2)}${unit.symbol}</text>
                         <line x1="0" y1="${flapHeight * scale}" x2="${templateWidth * scale}" y2="${flapHeight * scale}" 
                             stroke="black" stroke-width="1" stroke-dasharray="5,5"/>
                         <!-- First fold section -->
-                        <text x="-10" y="${(flapHeight + 1) * scale + 5}" text-anchor="end" dominant-baseline="middle">2"</text>
-                        <line x1="0" y1="${(flapHeight + 2) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + 2) * scale}" 
+                        <text x="-20" y="${(flapHeight + unit.foldSection/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${unit.doubleFoldSection}${unit.symbol}</text>
+                        <line x1="0" y1="${(flapHeight + unit.doubleFoldSection) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + unit.doubleFoldSection) * scale}" 
                             stroke="black" stroke-width="1" stroke-dasharray="5,5"/>
                         <!-- Second fold section -->
-                        <text x="-10" y="${(flapHeight + 2.5) * scale + 5}" text-anchor="end" dominant-baseline="middle">1"</text>
-                        <line x1="0" y1="${(flapHeight + 3) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + 3) * scale}" 
+                        <text x="-20" y="${(flapHeight + unit.doubleFoldSection + unit.foldSection/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${unit.foldSection}${unit.symbol}</text>
+                        <line x1="0" y1="${(flapHeight + unit.doubleFoldSection + unit.foldSection) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + unit.doubleFoldSection + unit.foldSection) * scale}" 
                             stroke="black" stroke-width="1" stroke-dasharray="5,5"/>
                         <!-- Main laptop compartment -->
-                        <text x="-10" y="${(flapHeight + 3 + laptopLength/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${laptopLength}"</text>
-                        <line x1="0" y1="${(flapHeight + 3 + laptopLength) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + 3 + laptopLength) * scale}" 
+                        <text x="-20" y="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${laptopLength.toFixed(2)}${unit.symbol}</text>
+                        <line x1="0" y1="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength) * scale}" 
                             stroke="black" stroke-width="1" stroke-dasharray="5,5"/>
                         <!-- Bottom fold section -->
-                        <text x="-10" y="${(flapHeight + 3.5 + laptopLength) * scale + 5}" text-anchor="end" dominant-baseline="middle">1"</text>
-                        <line x1="0" y1="${(flapHeight + 4 + laptopLength) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + 4 + laptopLength) * scale}" 
+                        <text x="-20" y="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength + unit.foldSection/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${unit.foldSection}${unit.symbol}</text>
+                        <line x1="0" y1="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength + unit.foldSection) * scale}" x2="${templateWidth * scale}" y2="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength + unit.foldSection) * scale}" 
                             stroke="black" stroke-width="1" stroke-dasharray="5,5"/>
                         <!-- Back panel -->
-                        <text x="-10" y="${(flapHeight + 5 + laptopLength + laptopLength/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${laptopLength}"</text>
+                        <text x="-20" y="${(flapHeight + unit.doubleFoldSection + unit.foldSection + laptopLength + unit.foldSection + laptopLength/2) * scale + 5}" text-anchor="end" dominant-baseline="middle">${laptopLength.toFixed(2)}${unit.symbol}</text>
 
                         <!-- Dimension lines and text -->
-                        <text x="${(templateWidth * scale) / 2}" y="-10" text-anchor="middle">${templateWidth.toFixed(2)}"</text>
-                        <text x="${templateWidth * scale + 25}" y="${templateLength * scale / 2}" text-anchor="middle" transform="rotate(90 ${templateWidth * scale + 25},${templateLength * scale / 2})">${templateLength.toFixed(2)}"</text>
+                        <text x="${(templateWidth * scale) / 2}" y="-10" text-anchor="middle">${templateWidth.toFixed(2)}${unit.symbol}</text>
+                        <text x="${templateWidth * scale + 25}" y="${templateLength * scale / 2}" text-anchor="middle" transform="rotate(90 ${templateWidth * scale + 25},${templateLength * scale / 2})">${templateLength.toFixed(2)}${unit.symbol}</text>
                     
                         <!-- Center hole -->
-                        <circle cx="${(templateWidth * scale) / 2}" cy="${templateLength * scale}" r="${0.625 * scale}" fill="none" stroke="black"/>
+                        <circle cx="${(templateWidth * scale) / 2}" cy="${templateLength * scale}" r="${unit.holeDiameter * scale / 2}" fill="none" stroke="black"/>
 
-                        <text x="${(templateWidth * scale) / 2}" y="${templateLength * scale + 25}" text-anchor="middle">1.25" Dia</text>
-                        <text x="${templateWidth * scale + 10}" y="${templateLength * scale + 25}" text-anchor="start">1.5"</text>
+                        <text x="${(templateWidth * scale) / 2}" y="${templateLength * scale + 25}" text-anchor="middle">${unit.holeDiameter}${unit.symbol} Dia</text>
+                        <text x="${templateWidth * scale + 10}" y="${templateLength * scale + 25}" text-anchor="start">${unit.keeperHeight}${unit.symbol}</text>
                       
                         <!-- Keeper -->
                         <rect x="0" y="${templateLength * scale + 40}" 
-                              width="${templateWidth * scale}" height="${1.5 * scale}"
+                              width="${templateWidth * scale}" height="${unit.keeperHeight * scale}"
                               fill="none" stroke="black" stroke-width="2"/>
-                        <text x="-10" y="${templateLength * scale + 40 + (1.5 * scale)/2}" text-anchor="end" dominant-baseline="middle">1.5"</text>
-                        
-
+                        <text x="-20" y="${templateLength * scale + 40 + (unit.keeperHeight * scale)/2}" text-anchor="end" dominant-baseline="middle">${unit.keeperHeight}${unit.symbol}</text>
                     </g>
-                </svg>
-            `;
+                </svg>`
 
             document.getElementById('svgContainer').innerHTML = svg;
         }
